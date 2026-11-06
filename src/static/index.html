@@ -7,21 +7,60 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <header>
-      <h1>Mergington High School</h1>
-      <h2>Extracurricular Activities</h2>
+    <header class="topbar">
+      <div class="brand-block">
+        <span class="brand-mark">🏫</span>
+        <div>
+          <h1>Mergington High School</h1>
+          <h2>Extracurricular Activities</h2>
+        </div>
+      </div>
+      <button id="teacher-login-btn" class="teacher-login-btn" type="button">
+        Teacher Login
+      </button>
     </header>
 
     <main>
-      <section id="activities-container">
-        <h3>Available Activities</h3>
+      <section id="activities-container" class="panel">
+        <div class="section-heading">
+          <h3>Available Activities</h3>
+        </div>
+
+        <div id="toolbar" class="toolbar">
+          <div class="field-group">
+            <label for="search">Search</label>
+            <input id="search" type="search" placeholder="Find an activity" />
+          </div>
+          <div class="field-group">
+            <label for="category-filter">Category</label>
+            <select id="category-filter">
+              <option value="all">All categories</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="sort-by">Sort by</label>
+            <select id="sort-by">
+              <option value="name">Name</option>
+              <option value="date">Date</option>
+              <option value="participants">Participants</option>
+              <option value="time">Time</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="sort-order">Order</label>
+            <select id="sort-order">
+              <option value="asc">Ascending</option>
+              <option value="desc">Descending</option>
+            </select>
+          </div>
+        </div>
+
         <div id="activities-list">
-          <!-- Activities will be loaded here -->
           <p>Loading activities...</p>
         </div>
       </section>
 
-      <section id="signup-container">
+      <section id="signup-container" class="panel">
         <h3>Sign Up for an Activity</h3>
         <form id="signup-form">
           <div class="form-group">
@@ -32,7 +71,6 @@
             <label for="activity">Select Activity:</label>
             <select id="activity" required>
               <option value="">-- Select an activity --</option>
-              <!-- Activity options will be loaded here -->
             </select>
           </div>
           <button type="submit">Sign Up</button>
@@ -40,6 +78,26 @@
         <div id="message" class="hidden"></div>
       </section>
     </main>
+
+    <div id="admin-modal" class="modal hidden" aria-hidden="true">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Teacher Login</h3>
+          <button type="button" class="close-btn" id="close-admin-modal">×</button>
+        </div>
+        <form id="teacher-login-form">
+          <div class="form-group">
+            <label for="teacher-username">Username</label>
+            <input id="teacher-username" name="teacher-username" type="text" required />
+          </div>
+          <div class="form-group">
+            <label for="teacher-password">Password</label>
+            <input id="teacher-password" name="teacher-password" type="password" required />
+          </div>
+          <button type="submit">Log in</button>
+        </form>
+      </div>
+    </div>
 
     <footer>
       <p>&copy; 2026 Mergington High School</p>

@@ -1,81 +1,47 @@
 """
 High School Management System API
 
-A super simple FastAPI application that allows students to view and sign up
-for extracurricular activities at Mergington High School.
+A simple FastAPI application for viewing, filtering, and managing
+extracurricular activities at Mergington High School.
 """
 
-from fastapi import FastAPI, HTTPException
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
-import os
+import json
 from pathlib import Path
 
-app = FastAPI(title="Mergington High School API",
-              description="API for viewing and signing up for extracurricular activities")
+from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
-# Mount the static files directory
-current_dir = Path(__file__).parent
-app.mount("/static", StaticFiles(directory=os.path.join(Path(__file__).parent,
-          "static")), name="static")
+BASE_DIR = Path(__file__).resolve().parent
+ACTIVITIES_PATH = BASE_DIR / "activities.json"
+TEACHERS_PATH = BASE_DIR / "teachers.json"
 
-# In-memory activity database
-activities = {
-    "Chess Club": {
-        "description": "Learn strategies and compete in chess tournaments",
-        "schedule": "Fridays, 3:30 PM - 5:00 PM",
-        "max_participants": 12,
-        "participants": ["michael@mergington.edu", "daniel@mergington.edu"]
-    },
-    "Programming Class": {
-        "description": "Learn programming fundamentals and build software projects",
-        "schedule": "Tuesdays and Thursdays, 3:30 PM - 4:30 PM",
-        "max_participants": 20,
-        "participants": ["emma@mergington.edu", "sophia@mergington.edu"]
-    },
-    "Gym Class": {
-        "description": "Physical education and sports activities",
-        "schedule": "Mondays, Wednesdays, Fridays, 2:00 PM - 3:00 PM",
-        "max_participants": 30,
-        "participants": ["john@mergington.edu", "olivia@mergington.edu"]
-    },
-    "Soccer Team": {
-        "description": "Join the school soccer team and compete in matches",
-        "schedule": "Tuesdays and Thursdays, 4:00 PM - 5:30 PM",
-        "max_participants": 22,
-        "participants": ["liam@mergington.edu", "noah@mergington.edu"]
-    },
-    "Basketball Team": {
-        "description": "Practice and play basketball with the school team",
-        "schedule": "Wednesdays and Fridays, 3:30 PM - 5:00 PM",
-        "max_participants": 15,
-        "participants": ["ava@mergington.edu", "mia@mergington.edu"]
-    },
-    "Art Club": {
-        "description": "Explore your creativity through painting and drawing",
-        "schedule": "Thursdays, 3:30 PM - 5:00 PM",
-        "max_participants": 15,
-        "participants": ["amelia@mergington.edu", "harper@mergington.edu"]
-    },
-    "Drama Club": {
-        "description": "Act, direct, and produce plays and performances",
-        "schedule": "Mondays and Wednesdays, 4:00 PM - 5:30 PM",
-        "max_participants": 20,
-        "participants": ["ella@mergington.edu", "scarlett@mergington.edu"]
-    },
-    "Math Club": {
-        "description": "Solve challenging problems and participate in math competitions",
-        "schedule": "Tuesdays, 3:30 PM - 4:30 PM",
-        "max_participants": 10,
-        "participants": ["james@mergington.edu", "benjamin@mergington.edu"]
-    },
-    "Debate Team": {
-        "description": "Develop public speaking and argumentation skills",
-        "schedule": "Fridays, 4:00 PM - 5:30 PM",
-        "max_participants": 12,
-        "participants": ["charlotte@mergington.edu", "henry@mergington.edu"]
-    }
-}
+
+def _load_json(path: Path):
+    with path.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+activities = _load_json(ACTIVITIES_PATH)
+teachers = _load_json(TEACHERS_PATH).get("teachers", {})
+
+
+def _is_teacher(username: str = None, password: str = None) -> bool:
+    if not username or not password:
+        return False
+    return teachers.get(username) == password
+
+
+app = FastAPI(
+    title="Mergington High School API",
+    description="API for viewing and signing up for extracurricular activities",
+)
+
+app.mount(
+    "/static",
+    StaticFiles(directory=str(BASE_DIR / "static")),
+    name="static",
+)
 
 
 @app.get("/")
@@ -84,49 +50,139 @@ def root():
 
 
 @app.get("/activities")
-def get_activities():
-    return activities
+def get_activities(
+    category: str = None,
+    search: str = None,
+    sort: str = "name",
+    order: str = "asc",
+):
+    """Return the activities list, optionally filtered and sorted."""
+    results = {}
+    for name, details in activities.items():
+        details_obj = dict(details)
+        details_obj["name"] = name
+
+        if category and category.lower() != "all":
+            if str(details.get("category", "")).lower() != category.lower():
+                continue
+
+        if search:
+            search_term = search.lower()
+            haystack = " ".join(
+                [
+                    name,
+                    details.get("description", ""),
+                    details.get("schedule", ""),
+                    details.get("category", ""),
+                ]
+            ).lower()
+            if search_term not in haystack:
+                continue
+
+        results[name] = details_obj
+
+    if sort == "participants":
+        results = dict(
+            sorted(
+                results.items(),
+                key=lambda item: len(item[1].get("participants", [])),
+                reverse=(order.lower() == "desc"),
+            )
+        )
+    elif sort in {"name", "activity"}:
+        results = dict(
+            sorted(
+                results.items(),
+                key=lambda item: item[0].lower(),
+                reverse=(order.lower() == "desc"),
+            )
+        )
+    elif sort == "date":
+        results = dict(
+            sorted(
+                results.items(),
+                key=lambda item: item[1].get("date", ""),
+                reverse=(order.lower() == "desc"),
+            )
+        )
+    elif sort == "time":
+        results = dict(
+            sorted(
+                results.items(),
+                key=lambda item: item[1].get("schedule", ""),
+                reverse=(order.lower() == "desc"),
+            )
+        )
+
+    return results
 
 
 @app.post("/activities/{activity_name}/signup")
-def signup_for_activity(activity_name: str, email: str):
-    """Sign up a student for an activity"""
-    # Validate activity exists
+async def signup_for_activity(
+    activity_name: str,
+    email: str = None,
+    request: Request = None,
+    x_teacher_username: str = Header(default=None, alias="x-teacher-username"),
+    x_teacher_password: str = Header(default=None, alias="x-teacher-password"),
+):
+    """Sign up a student for an activity.
+
+    Teacher credentials are accepted for admin flows, but legacy student signups
+    continue to work when no admin headers are provided.
+    """
+    if email is None and request is not None:
+        payload = await request.json()
+        email = payload.get("email") if isinstance(payload, dict) else None
+
     if activity_name not in activities:
         raise HTTPException(status_code=404, detail="Activity not found")
 
-    # Get the specific activity
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+
+    if x_teacher_username or x_teacher_password:
+        if not _is_teacher(x_teacher_username, x_teacher_password):
+            raise HTTPException(status_code=403, detail="Invalid teacher credentials")
+
     activity = activities[activity_name]
 
-    # Validate student is not already signed up
     if email in activity["participants"]:
-        raise HTTPException(
-            status_code=400,
-            detail="Student is already signed up"
-        )
+        raise HTTPException(status_code=400, detail="Student is already signed up")
 
-    # Add student
+    if len(activity["participants"]) >= activity["max_participants"]:
+        raise HTTPException(status_code=400, detail="Activity is full")
+
     activity["participants"].append(email)
     return {"message": f"Signed up {email} for {activity_name}"}
 
 
 @app.delete("/activities/{activity_name}/unregister")
-def unregister_from_activity(activity_name: str, email: str):
-    """Unregister a student from an activity"""
-    # Validate activity exists
+async def unregister_from_activity(
+    activity_name: str,
+    email: str = None,
+    request: Request = None,
+    x_teacher_username: str = Header(default=None, alias="x-teacher-username"),
+    x_teacher_password: str = Header(default=None, alias="x-teacher-password"),
+):
+    """Unregister a student from an activity."""
+    if email is None and request is not None:
+        payload = await request.json()
+        email = payload.get("email") if isinstance(payload, dict) else None
+
     if activity_name not in activities:
         raise HTTPException(status_code=404, detail="Activity not found")
 
-    # Get the specific activity
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+
+    if x_teacher_username or x_teacher_password:
+        if not _is_teacher(x_teacher_username, x_teacher_password):
+            raise HTTPException(status_code=403, detail="Invalid teacher credentials")
+
     activity = activities[activity_name]
 
-    # Validate student is signed up
     if email not in activity["participants"]:
-        raise HTTPException(
-            status_code=400,
-            detail="Student is not signed up for this activity"
-        )
+        raise HTTPException(status_code=400, detail="Student is not signed up for this activity")
 
-    # Remove student
     activity["participants"].remove(email)
     return {"message": f"Unregistered {email} from {activity_name}"}

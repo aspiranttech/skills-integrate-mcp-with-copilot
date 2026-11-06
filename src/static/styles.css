@@ -1,3 +1,16 @@
+:root {
+  --school-green: #72d74d;
+  --school-green-dark: #409d2d;
+  --school-navy: #0d2d3b;
+  --school-white: #f8faf7;
+  --school-sand: #eaf7e0;
+  --school-border: #dcead7;
+  --school-accent: #1e4d5e;
+  --danger: #d64545;
+  --success: #0d7a45;
+  --shadow: rgba(13, 45, 59, 0.12);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -6,26 +19,87 @@
 }
 
 body {
+  position: relative;
   font-family: Arial, sans-serif;
   line-height: 1.6;
-  color: #333;
-  max-width: 1200px;
+  color: var(--school-navy);
+  max-width: 1400px;
   margin: 0 auto;
   padding: 20px;
-  background-color: #f5f5f5;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.88)),
+    repeating-linear-gradient(
+      90deg,
+      rgba(114, 215, 77, 0.22) 0,
+      rgba(114, 215, 77, 0.22) 2px,
+      transparent 2px,
+      transparent 32px
+    );
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(16, 76, 43, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 76, 43, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.4;
 }
 
 header {
-  text-align: center;
-  padding: 20px 0;
-  margin-bottom: 30px;
-  background-color: #1a237e;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  text-align: left;
+  padding: 20px 28px;
+  margin-bottom: 28px;
+  background: linear-gradient(135deg, var(--school-green) 0%, #9ce57e 100%);
   color: white;
-  border-radius: 5px;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(64, 157, 45, 0.18);
+}
+
+.brand-block {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 2rem;
 }
 
 header h1 {
-  margin-bottom: 10px;
+  margin-bottom: 6px;
+  font-size: clamp(1.8rem, 2vw, 2.6rem);
+}
+
+header h2 {
+  font-size: 1.05rem;
+  opacity: 0.95;
+}
+
+.teacher-login-btn {
+  background: var(--school-navy);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font-weight: 700;
 }
 
 main {
@@ -33,58 +107,138 @@ main {
   flex-wrap: wrap;
   gap: 30px;
   justify-content: center;
+  align-items: flex-start;
 }
 
-@media (min-width: 768px) {
-  main {
-    grid-template-columns: 2fr 1fr;
-  }
-}
-
-section {
-  background-color: white;
+.panel {
+  background: rgba(255, 255, 255, 0.9);
   padding: 20px;
-  border-radius: 5px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  border-radius: 18px;
+  box-shadow: 0 10px 24px var(--shadow);
+  border: 1px solid var(--school-border);
   width: 100%;
-  max-width: 500px;
+  max-width: 740px;
+  backdrop-filter: blur(2px);
+}
+
+#activities-container {
+  flex: 2 1 620px;
+}
+
+#signup-container {
+  flex: 1 1 320px;
 }
 
 section h3 {
   margin-bottom: 20px;
   padding-bottom: 10px;
-  border-bottom: 1px solid #ddd;
-  color: #1a237e;
+  border-bottom: 1px solid var(--school-border);
+  color: var(--school-navy);
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 12px;
+  background: var(--school-sand);
+  border: 1px solid var(--school-border);
+  border-radius: 12px;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-group label {
+  font-weight: 700;
+  color: var(--school-navy);
+}
+
+.field-group input,
+.field-group select,
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #bfd7ba;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: white;
+}
+
+#activities-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
 }
 
 .activity-card {
-  margin-bottom: 15px;
-  padding: 15px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  background-color: #f9f9f9;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 0;
+  padding: 18px;
+  border: 1px solid var(--school-border);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #f5fdf1 100%);
+  box-shadow: 0 4px 14px rgba(17, 51, 33, 0.04);
 }
 
 .activity-card h4 {
-  margin-bottom: 10px;
-  color: #0066cc;
+  margin-bottom: 0;
+  color: var(--school-navy);
+  font-size: 1.15rem;
+}
+
+.activity-card .activity-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.activity-tag {
+  display: inline-block;
+  background: rgba(114, 215, 77, 0.16);
+  color: var(--school-green-dark);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  padding: 4px 9px;
+  font-weight: 700;
+}
+
+.activity-card img {
+  width: 100%;
+  max-height: 85px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--school-border);
+  background: #eefaf0;
 }
 
 .activity-card p {
-  margin-bottom: 8px;
+  margin-bottom: 0;
+  font-size: 0.96rem;
 }
 
-/* New styles for participants section */
+.activity-card .register-btn {
+  margin-top: auto;
+}
+
 .participants-container {
-  margin-top: 15px;
-  padding-top: 12px;
-  border-top: 1px dashed #ccc;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed #bfd7ba;
 }
 
 .participants-section h5 {
   margin-bottom: 8px;
-  color: #1a237e;
-  font-size: 16px;
+  color: var(--school-navy);
+  font-size: 0.95rem;
 }
 
 .participants-section ul {
@@ -98,9 +252,9 @@ section h3 {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
 }
 
-/* Remove the bullet point pseudo-element */
 .participants-section ul li::before {
   display: none;
 }
@@ -108,25 +262,26 @@ section h3 {
 .participant-email {
   flex-grow: 1;
   margin-right: 8px;
+  word-break: break-word;
 }
 
 .delete-btn {
-  background: none;
+  background: rgba(214, 69, 69, 0.12);
   border: none;
-  color: #c62828;
+  color: var(--danger);
   cursor: pointer;
-  font-size: 14px;
-  padding: 2px 5px;
+  font-size: 0.85rem;
+  padding: 5px 7px;
   transition: all 0.2s;
-  border-radius: 3px;
+  border-radius: 6px;
 }
 
 .delete-btn:hover {
-  background-color: #ffebee;
+  background: rgba(214, 69, 69, 0.18);
 }
 
 .participants-section p {
-  color: #777;
+  color: #555;
   font-style: italic;
 }
 
@@ -140,61 +295,111 @@ section h3 {
   font-weight: bold;
 }
 
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 16px;
-}
-
 button {
-  background-color: #1a237e;
+  background-color: var(--school-green-dark);
   color: white;
   border: none;
   padding: 10px 15px;
-  font-size: 16px;
-  border-radius: 5px;
+  font-size: 1rem;
+  border-radius: 9px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s ease, transform 0.15s ease;
 }
 
 button:hover {
-  background-color: #3949ab;
+  background-color: #2d7f26;
+}
+
+button:active {
+  transform: translateY(1px);
 }
 
 .message {
   margin-top: 20px;
-  padding: 10px;
-  border-radius: 4px;
+  padding: 10px 12px;
+  border-radius: 8px;
 }
 
 .success {
-  background-color: #e8f5e9;
-  color: #2e7d32;
-  border: 1px solid #a5d6a7;
+  background-color: #eafaf2;
+  color: var(--success);
+  border: 1px solid #b6f0cd;
 }
 
 .error {
-  background-color: #ffebee;
-  color: #c62828;
-  border: 1px solid #ef9a9a;
+  background-color: #fff0f0;
+  color: var(--danger);
+  border: 1px solid #f3baba;
 }
 
 .info {
-  background-color: #d1ecf1;
-  color: #0c5460;
-  border: 1px solid #bee5eb;
+  background-color: #eef6ff;
+  color: var(--school-accent);
+  border: 1px solid #cfe4ff;
 }
 
 .hidden {
   display: none;
 }
 
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 25, 20, 0.37);
+  display: grid;
+  place-items: center;
+  z-index: 20;
+}
+
+.modal-content {
+  width: min(92vw, 420px);
+  background: white;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.close-btn {
+  background: transparent;
+  color: var(--school-navy);
+  font-size: 1.6rem;
+  padding: 0;
+  line-height: 1;
+}
+
 footer {
   text-align: center;
   margin-top: 30px;
   padding: 20px;
-  color: #666;
+  color: #466455;
+}
+
+@media (max-width: 720px) {
+  body {
+    padding: 14px;
+  }
+
+  header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .brand-block {
+    width: 100%;
+  }
+
+  .teacher-login-btn {
+    width: 100%;
+  }
+
+  #activities-list {
+    grid-template-columns: 1fr;
+  }
 }
