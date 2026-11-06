@@ -1,7 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
   const activitiesList = document.getElementById("activities-list");
-  const activitySelect = document.getElementById("activity");
-  const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
   const searchInput = document.getElementById("search");
   const categoryFilter = document.getElementById("category-filter");
@@ -16,6 +14,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const state = {
     teacherLoggedIn: false,
+    username: null,
+    password: null,
   };
 
   function getTeacherHeaders() {
@@ -24,8 +24,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     return {
-      "x-teacher-username": teacherUsernameInput.value,
-      "x-teacher-password": teacherPasswordInput.value,
+      "x-teacher-username": state.username,
+      "x-teacher-password": state.password,
     };
   }
 
@@ -60,7 +60,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const activities = await response.json();
 
       activitiesList.innerHTML = "";
-      activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
 
       const categorySet = new Set();
       Object.entries(activities).forEach(([name, details]) => {
@@ -70,7 +69,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       const currentCategories = Array.from(categorySet).sort();
-      const currentCategoryOptions = new Set(Array.from(categoryFilter.options).map((option) => option.value));
       if (categoryFilter.children.length === 1) {
         currentCategories.forEach((category) => {
           const option = document.createElement("option");
@@ -98,7 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   ${details.participants
                     .map(
                       (email) =>
-                        `<li><span class="participant-email">${email}</span><button class="delete-btn" data-activity="${name}" data-email="${email}" type="button">❌</button></li>`
+                        `<li><span class="participant-email">${email}</span>${state.teacherLoggedIn ? `<button class="delete-btn" data-activity="${name}" data-email="${email}" type="button" aria-label="Unregister ${email}">❌</button>` : ""}</li>`
                     )
                     .join("")}
                 </ul>
@@ -118,7 +116,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
-          <button class="register-btn" type="button" data-activity="${name}">Register student</button>
+          ${state.teacherLoggedIn ? `<button class="register-btn" type="button" data-activity="${name}">Register student</button>` : ""}
           <div class="participants-container">
             ${participantsHTML}
           </div>
@@ -126,10 +124,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         activitiesList.appendChild(activityCard);
 
-        const option = document.createElement("option");
-        option.value = name;
-        option.textContent = name;
-        activitySelect.appendChild(option);
       });
 
       document.querySelectorAll(".delete-btn").forEach((button) => {
@@ -151,6 +145,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function registerStudent(activity, email) {
+    if (!state.teacherLoggedIn) {
+      showMessage("Please log in as a teacher to register students.", "error");
+      return;
+    }
+
     try {
       const headers = getTeacherHeaders();
       const response = await fetch(
@@ -164,8 +163,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (response.ok) {
         showMessage(result.message, "success");
-        document.getElementById("email").value = email;
-        document.getElementById("activity").value = activity;
         fetchActivities();
       } else {
         showMessage(result.detail || "An error occurred", "error");
@@ -206,21 +203,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  signupForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    const email = document.getElementById("email").value.trim();
-    const activity = document.getElementById("activity").value;
-
-    await registerStudent(activity, email);
-  });
-
   searchInput.addEventListener("input", fetchActivities);
   categoryFilter.addEventListener("change", fetchActivities);
   sortBy.addEventListener("change", fetchActivities);
   sortOrder.addEventListener("change", fetchActivities);
 
   teacherLoginBtn.addEventListener("click", () => {
+    if (state.teacherLoggedIn) {
+      state.teacherLoggedIn = false;
+      state.username = null;
+      state.password = null;
+      teacherLoginBtn.textContent = "Teacher Login";
+      fetchActivities();
+      showMessage("You have logged out.", "info");
+      return;
+    }
+
     adminModal.classList.remove("hidden");
     adminModal.setAttribute("aria-hidden", "false");
   });
@@ -237,7 +235,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  teacherLoginForm.addEventListener("submit", (event) => {
+  teacherLoginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const username = teacherUsernameInput.value.trim();
@@ -248,12 +246,32 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    state.teacherLoggedIn = true;
-    teacherLoginBtn.textContent = `Logged in as ${username}`;
-    adminModal.classList.add("hidden");
-    adminModal.setAttribute("aria-hidden", "true");
-    teacherLoginForm.reset();
-    showMessage(`Teacher ${username} logged in.`, "success");
+    try {
+      const response = await fetch("/teacher/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        showMessage(result.detail || "Teacher login failed.", "error");
+        return;
+      }
+
+      state.teacherLoggedIn = true;
+      state.username = username;
+      state.password = password;
+      teacherLoginBtn.textContent = `Log out (${username})`;
+      adminModal.classList.add("hidden");
+      adminModal.setAttribute("aria-hidden", "true");
+      teacherLoginForm.reset();
+      showMessage(`Teacher ${username} logged in.`, "success");
+      fetchActivities();
+    } catch (error) {
+      showMessage("Unable to log in. Please try again.", "error");
+      console.error("Error logging in:", error);
+    }
   });
 
   fetchActivities();

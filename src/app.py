@@ -7,10 +7,12 @@ extracurricular activities at Mergington High School.
 
 import json
 from pathlib import Path
+from typing import Optional
 
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 BASE_DIR = Path(__file__).resolve().parent
 ACTIVITIES_PATH = BASE_DIR / "activities.json"
@@ -32,6 +34,16 @@ def _is_teacher(username: str = None, password: str = None) -> bool:
     return teachers.get(username) == password
 
 
+class TeacherLogin(BaseModel):
+    username: str
+    password: str
+
+
+def _require_teacher(username: Optional[str], password: Optional[str]) -> None:
+    if not _is_teacher(username, password):
+        raise HTTPException(status_code=401, detail="Teacher login required")
+
+
 app = FastAPI(
     title="Mergington High School API",
     description="API for viewing and signing up for extracurricular activities",
@@ -47,6 +59,13 @@ app.mount(
 @app.get("/")
 def root():
     return RedirectResponse(url="/static/index.html")
+
+
+@app.post("/teacher/login")
+def teacher_login(credentials: TeacherLogin):
+    """Validate a teacher's credentials before enabling admin actions."""
+    _require_teacher(credentials.username, credentials.password)
+    return {"username": credentials.username}
 
 
 @app.get("/activities")
@@ -121,28 +140,17 @@ def get_activities(
 async def signup_for_activity(
     activity_name: str,
     email: str = None,
-    request: Request = None,
     x_teacher_username: str = Header(default=None, alias="x-teacher-username"),
     x_teacher_password: str = Header(default=None, alias="x-teacher-password"),
 ):
-    """Sign up a student for an activity.
-
-    Teacher credentials are accepted for admin flows, but legacy student signups
-    continue to work when no admin headers are provided.
-    """
-    if email is None and request is not None:
-        payload = await request.json()
-        email = payload.get("email") if isinstance(payload, dict) else None
+    """Sign up a student for an activity; only teachers may change rosters."""
+    _require_teacher(x_teacher_username, x_teacher_password)
 
     if activity_name not in activities:
         raise HTTPException(status_code=404, detail="Activity not found")
 
     if not email:
         raise HTTPException(status_code=400, detail="Email is required")
-
-    if x_teacher_username or x_teacher_password:
-        if not _is_teacher(x_teacher_username, x_teacher_password):
-            raise HTTPException(status_code=403, detail="Invalid teacher credentials")
 
     activity = activities[activity_name]
 
@@ -160,24 +168,17 @@ async def signup_for_activity(
 async def unregister_from_activity(
     activity_name: str,
     email: str = None,
-    request: Request = None,
     x_teacher_username: str = Header(default=None, alias="x-teacher-username"),
     x_teacher_password: str = Header(default=None, alias="x-teacher-password"),
 ):
-    """Unregister a student from an activity."""
-    if email is None and request is not None:
-        payload = await request.json()
-        email = payload.get("email") if isinstance(payload, dict) else None
+    """Unregister a student from an activity; only teachers may change rosters."""
+    _require_teacher(x_teacher_username, x_teacher_password)
 
     if activity_name not in activities:
         raise HTTPException(status_code=404, detail="Activity not found")
 
     if not email:
         raise HTTPException(status_code=400, detail="Email is required")
-
-    if x_teacher_username or x_teacher_password:
-        if not _is_teacher(x_teacher_username, x_teacher_password):
-            raise HTTPException(status_code=403, detail="Invalid teacher credentials")
 
     activity = activities[activity_name]
 
